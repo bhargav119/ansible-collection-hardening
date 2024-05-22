@@ -1,7 +1,6 @@
 ---
-- name: Gather facts, if not present
-  ansible.builtin.setup:
-  when: not ansible_facts
+- name: Gather facts
+  gather_facts: yes
   tags:
     - always
 
@@ -18,10 +17,7 @@
       skip: true
   tags: always
 
-# we only override variables with our default, if they have not been specified already
-# by default the lookup functions finds all varnames containing the string, therefore
-# we add ^ and $ to denote start and end of string, so this returns only exact matches
-- name: Set OS dependent variables, if not already defined by user # noqa var-naming
+- name: Set OS dependent variables, if not already defined by user
   ansible.builtin.set_fact:
     "{{ item.key }}": "{{ item.value }}"
   when: not lookup('varnames', '^' + item.key + '$')
@@ -80,7 +76,7 @@
 
 - name: Import tasks to set suid and sgid
   ansible.builtin.import_tasks: suid_sgid.yml
-  when: os_security_suid_sgid_enforce  | bool
+  when: os_security_suid_sgid_enforce | bool
   tags: suid_sgid
 
 - name: Import tasks to configure sysctl
@@ -124,12 +120,11 @@
     - ansible_facts.selinux.status == 'enabled'
     - os_selinux_enabled | bool
 
-- name: Raise deprecation warning for initramfs tasks  # noqa ignore-errors
-  ansible.builtin.fail:
+- name: Raise deprecation warning for initramfs tasks
+  ansible.builtin.debug:
     msg: "WARNING: Rebuilding initramfs is deprecated and will be removed
           in the next major release. For more information take a look at this issue:
           https://github.com/dev-sec/ansible-collection-hardening/pull/591"
   when:
     - os_security_kernel_enable_module_loading
-  ignore_errors: true
   tags: always
